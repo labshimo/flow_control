@@ -94,7 +94,7 @@ class ApexAgent():
 # class Tester:
 
 def main():
-    env_name    = "carpole"
+    env_name    = "flowcontrol"
     agent       = ApexAgent(env_name)
     agent.run()
 
