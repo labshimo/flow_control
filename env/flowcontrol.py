@@ -54,6 +54,9 @@ class Config():
         self.batch_size            = 32
         self.min_experiences       = 5000
         self.num_actors            = 1
+        self.test                  = True
+        self.test_per_episode      = 5
+        self.repeat_test           = 3
         # memory
         self.capacity              = 2**14
         self.memory                = PERProportionalMemory
@@ -72,7 +75,6 @@ class Env():
         self.config                 = config
         (_, self.r, self.c, self.l) = config.input_shape
         self.exp                    = ExpFlowSeparation(config)
-        self.mode                   = "train"
         # log
         self.data_path              = "/data/"
         self.run_path               = "/run/"
@@ -81,16 +83,16 @@ class Env():
         self.num_mave          = 10
         self.b                 = np.ones(self.num_mave)/self.num_mave
         self.a_buffer          = np.zeros(self.config.action_space)
-        # episode
-        self.episode           = 0
-        
+
         if not os.path.exists(self.config.monitor_mov_dir):
             os.makedirs(self.config.monitor_mov_dir + "/train/" + self.data_path)
             os.makedirs(self.config.monitor_mov_dir + "/train/" + self.run_path)
             os.makedirs(self.config.monitor_mov_dir + "/test/"  + self.data_path)
             os.makedirs(self.config.monitor_mov_dir + "/test/"  + self.run_path)
 
-    def reset(self):
+    def reset(self,mode, episode):
+        self.mode          = mode
+        self.episode       = episode
         self.state         = deque(maxlen=self.r)
         observation_ori    = self.exp.reset()
         observation        = self.process_observation(observation_ori)
@@ -103,7 +105,7 @@ class Env():
             data                   = [0, reward_ori, self.process_reward(reward_ori)]
             self.buffer_memory     = np.append(self.buffer_memory,[data],axis=0)
             self.env_memory        = np.append(self.env_memory,observation_ori,axis=0)
-            # time.sleep(0.001)
+
         return np.array(self.state)
     
     def step(self, action):
@@ -144,7 +146,6 @@ class Env():
         if self.mode == "train":
             data_path = self.config.monitor_mov_dir + "/train/" + 'data/data{:0=5}.csv'.format(self.episode)
             run_path  = self.config.monitor_mov_dir + "/train/" + 'run/run{:0=5}.csv'.format(self.episode)
-            self.episode += 1
         else:
             data_path = self.config.monitor_mov_dir + "/test/"  + 'data/data{:0=5}.csv'.format(self.episode)
             run_path  = self.config.monitor_mov_dir + "/test/"  + 'run/run{:0=5}.csv'.format(self.episode)
@@ -209,12 +210,8 @@ class ExpFlowSeparation():
         return self._reading()
 
     def step(self, action):
-        #s = time.time()
         self._writing(action)
-        # m = time.time()
         observation = self._reading() 
-        #f = time.time()
-        #print(f-m, m-s)
         reward      = self._reward(observation)
         self.step_count += 1
         

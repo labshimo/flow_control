@@ -15,35 +15,45 @@ class History:
     episode:          int
     step:             int
     global_step:      int
-    finished:         bool
 
 class Tester():
-    def __init__(self, pid, env, epsilon, config):
+    def __init__(self, pid, env, epsilon, config, mode="train"):
         self.pid            = pid
+        self.mode           = mode
         self.config         = config
         self.env            = env(config)
         self.epsilon        = epsilon
         self.global_steps   = 0
-        self.episodes       = 0
         # build Q network
         self.q_network      = self.config.network(config) #network
         self.q_network.summary()
     
-    def initialize(self):
+    def initialize(self, episodes):
         self.buffer       = []
         self.experiences  = []
         self.td_errors    = []
         self.R            = 0
         self.forward(np.random.rand(*self.config.input_shape[1:]))
  
-        return self.env.reset()
-
-    def play(self):
-        total_reward = 0
-        steps        = 0
-        max_Qs       = 0
-        done         = False
-        state        = self.initialize()
+        return self.env.reset(self.mode, episodes)
+    
+    def play_with_error(self,episodes):
+        try:
+            return self.play(episodes)
+        except Exception as e:
+            print ('=== error ===')
+            print ('type:' + str(type(e)))
+            print ('args:' + str(e.args))
+            print ('e :' + str(e))
+            self.env.exp.stop()
+            return self.play_with_error(episodes)
+        
+    def play(self, episodes):
+        total_reward  = 0
+        steps         = 0
+        max_Qs        = 0
+        done          = False
+        state         = self.initialize(episodes)
 
         while not done:
             action, max_q = self.forward(state)
@@ -53,16 +63,14 @@ class Tester():
                         
             steps             += 1
             total_reward      += reward
-            self.global_steps += 1
             max_Qs            += max_q
         
-        finished = True if self.episodes > self.config.max_episodes else False
-        
+        self.global_steps += steps
         history  = History(self.pid, total_reward, max_Qs/steps, self.epsilon, 
-                    self.episodes, steps, self.global_steps, finished)
-        self.episodes += 1
-
+                    episodes, steps, self.global_steps)
+        
         return self.td_errors, self.experiences, history
+
 
 
     def sample_action(self, state):
@@ -73,7 +81,11 @@ class Tester():
             return np.argmax(q), np.max(q)
 
     def forward(self, state):
-        return self.sample_action(state)
+        if self.mode == "train":
+            return self.sample_action(state)
+        else: 
+            q = self.q_network.predict([state])
+            return np.argmax(q), np.max(q)
 
     def get_sample(self, n):
         s, a, _,  _, _  = self.buffer[0]
@@ -119,16 +131,16 @@ def main():
     env         = module.Env
     config      = module.Config()
     agent       = Tester(0, env, 0.5, config)
-    for i in range(100):
-        print(i)
-        try:
-            agent.play()
-        except Exception as e:
-            print ('=== error ===')
-            print ('type:' + str(type(e)))
-            print ('args:' + str(e.args))
-            print ('e :' + str(e))
-            agent.env.exp.stop()
+    agent_test  = Tester(0, env, 0.5, config, mode="test")
+    
+    for i in range(20):
+        a, b, c = agent.play_with_error(i)
+        print(i, c)
+        if i%5==0:
+            a, b, c = agent_test.play_with_error(i)
+            print(i, c)
+        
+        
 
 if __name__ == "__main__":
     main()
