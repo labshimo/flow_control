@@ -12,7 +12,7 @@ class Conv1DDuelingNetwork(tf.keras.Model):
         super(Conv1DDuelingNetwork, self).__init__()
         (_, self.r, self.c, self.l) = config.input_shape
         self.action_space    = config.action_space
-        self.R    = kl.Reshape((self.l*self.r, self.c))
+        self.R    = kl.Reshape((self.r*self.c, self.l))
         self.c1   = kl.Conv1D(32, 10, padding="same", activation="relu",
                             kernel_initializer="he_normal")
         self.c2   = kl.Conv1D(32, 10, padding="same", activation="relu",

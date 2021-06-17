@@ -36,6 +36,7 @@ class Actor():
         self.experiences  = []
         self.td_errors    = []
         self.R            = 0
+        self.forward(np.random.rand(*self.config.input_shape[1:]))
         return self.env.reset()
 
     def play(self):

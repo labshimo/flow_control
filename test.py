@@ -1,3 +1,4 @@
+import time
 import importlib
 import numpy as np
 from copy import deepcopy
@@ -16,7 +17,7 @@ class History:
     global_step:      int
     finished:         bool
 
-class TestActor():
+class Tester():
     def __init__(self, pid, env, epsilon, config):
         self.pid            = pid
         self.config         = config
@@ -25,13 +26,16 @@ class TestActor():
         self.global_steps   = 0
         self.episodes       = 0
         # build Q network
-        self.q_network      = DuelingNetwork(config) #network
+        self.q_network      = self.config.network(config) #network
+        self.q_network.summary()
     
     def initialize(self):
         self.buffer       = []
         self.experiences  = []
         self.td_errors    = []
         self.R            = 0
+        self.forward(np.random.rand(*self.config.input_shape[1:]))
+ 
         return self.env.reset()
 
     def play(self):
@@ -43,7 +47,6 @@ class TestActor():
 
         while not done:
             action, max_q = self.forward(state)
-
             next_state, reward, done, _ = self.env.step(action)
             self.backward(*(state, action, reward, next_state, done, max_q))
             state = next_state
@@ -111,19 +114,27 @@ class TestActor():
 
 def main():
     capacity    = 2**14
-    env_name    = "carpole"
+    env_name    = "flowcontrol"
     module      = importlib.import_module("env." + env_name)
     env         = module.Env
     config      = module.Config()
-    agent       = TestActor(0, env, 0.5, config)
+    agent       = Tester(0, env, 0.5, config)
     for i in range(100):
-        agent.play()
+        print(i)
+        try:
+            agent.play()
+        except Exception as e:
+            print ('=== error ===')
+            print ('type:' + str(type(e)))
+            print ('args:' + str(e.args))
+            print ('e :' + str(e))
+            agent.env.exp.stop()
 
 if __name__ == "__main__":
     main()
     
-    prof = LineProfiler()    
-    prof.add_module(TestActor)
-    prof.add_function(main)  
-    prof.runcall(main)   
-    prof.print_stats(output_unit=1e-9)
+    # prof = LineProfiler()    
+    # prof.add_module(TestActor)
+    # prof.add_function(main)  
+    # prof.runcall(main)   
+    # prof.print_stats(output_unit=1e-9)

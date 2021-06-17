@@ -3,3 +3,5 @@ results/
 env/__pycache__/
 model/__pycache__/
 __pycache__/
+monitor/
+.vscode/
