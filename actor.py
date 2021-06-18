@@ -1,4 +1,6 @@
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 import gym
 import ray 
 import time
@@ -25,7 +27,7 @@ class Actor():
         self.env            = env(config)
         # epsilon
         self.epsilon        = epsilon
-        self.epsilon_step   = (epsilon - self.config.min_epsilon)/self.config.anealing_steps
+        self.epsilon_step   = (epsilon - self.config.min_epsilon)/self.config.anealing_steps if mode=="train" else 0
         self.global_steps   = 0
         # build Q network
         self.q_network      = self.config.network(config) #network
@@ -36,6 +38,7 @@ class Actor():
         self.weight_dir     = self.config.monitor_mov_dir + "/test/weight" 
         if not os.path.exists(self.weight_dir):
             os.makedirs(self.weight_dir)
+            
     def epsilon_function(self,episode):
         if self.config.anealing and self.config.no_anealing_steps > episode:
             self.epsilon -= self.epsilon_step
@@ -50,8 +53,12 @@ class Actor():
         self.forward(np.random.rand(*self.config.input_shape[1:]))
         return self.env.reset(self.mode, episode)
     
-    def test_play(self,episode):
-        self.update_weight()
+    def test_play(self,episode,weight_path=None):
+        if not weight_path:
+            self.update_weight()
+        else:
+            self.q_network.load_weights(weight_path)
+            
         historys = []
         for i in range(self.config.repeat_test):
             _, _, hist = self.play_with_error(episode+0.1*i)
