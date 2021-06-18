@@ -40,6 +40,7 @@ class Config():
         self.timeout               = 2
         self.total_time            = 1
         self.action_setting        = {"base_frequency": 12000,"burst_frequency": [100,600],"burst_ratio":[0.1],"voltage":[4,6]}
+        self.reference             = 4
         self.no_op_steps           = 50
         # parameter
         self.input_shape           = (None, 10, 10, 3)
@@ -95,9 +96,9 @@ class Env():
         self.episode       = episode
         self.state         = deque(maxlen=self.r)
         observation_ori    = self.exp.reset()
-        observation        = self.process_observation(observation_ori)
         self.buffer_memory = np.zeros((0,3))
         self.env_memory    = observation_ori
+        self.state.append(self.process_observation(observation_ori))
 
         for _ in range(self.config.no_op_steps):
             observation_ori, reward_ori, _  = self.exp.step(self.config.action_space-1)  # Do nothing
@@ -156,9 +157,10 @@ class Env():
 class ExpFlowSeparation():
     def __init__(self, config):
         self.config     = config
-        self.dt         = 1/self.config.sample_rate
+        self.dt         = self.config.number_of_samples/self.config.sample_rate
         self.n_loop     = int(self.config.sample_rate*self.config.total_time/self.config.number_of_samples)
         self.burst_wave = self.create_burst_wave(**self.config.action_setting)
+        self.punish     = self.get_punish(self.burst_wave, self.config.reference)
 
     def create_burst_wave(self, base_frequency, burst_frequency, burst_ratio, voltage):
         ### example -> burst_freq=600[Hz], burst_ratio=0.1[-], voltage=3[kV]

@@ -1,9 +1,8 @@
-import time
+import sys
+sys.path.append('../')
 import importlib
 import numpy as np
 from copy import deepcopy
-from line_profiler import LineProfiler
-from model import DuelingNetwork
 from dataclasses import dataclass
 
 @dataclass
@@ -120,12 +119,7 @@ class Tester():
         self.buffer.append((state, action, reward, next_state, q))
         self.n_step_transition(reward, done)
 
-
-# @ray.remote    
-# class Tester:
-
 def main():
-    capacity    = 2**14
     env_name    = "flowcontrol"
     module      = importlib.import_module("env." + env_name)
     env         = module.Env
@@ -144,9 +138,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-    # prof = LineProfiler()    
-    # prof.add_module(TestActor)
-    # prof.add_function(main)  
-    # prof.runcall(main)   
-    # prof.print_stats(output_unit=1e-9)
