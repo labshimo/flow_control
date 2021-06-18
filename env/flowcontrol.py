@@ -42,6 +42,13 @@ class Config():
         self.action_setting        = {"base_frequency": 12000,"burst_frequency": [100,600],"burst_ratio":[0.1],"voltage":[4,6]}
         self.reference             = 4
         self.no_op_steps           = 50
+        # epsilon
+        self.base_epsilon          = 0.6
+        self.epsilon_alpha         = 2
+        self.anealing              = True
+        self.no_anealing_steps     = 500
+        self.anealing_steps        = 4000
+        self.min_epsilon           = 0.05
         # parameter
         self.input_shape           = (None, 10, 10, 3)
         self.gamma                 = 0.99
