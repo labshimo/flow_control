@@ -29,13 +29,14 @@ class ApexAgent():
 
     def _create_process(self):
         ray.init() 
-        epsilons      = np.linspace(0.6, 0.005, self.config.num_actors)
+        epsilons      = [self.epsilon_function(i) for i in range(self.config.num_actors)]
         self.weight_q = Queue(maxsize=self.config.num_actors+2)
         self.actors   = [Actor.remote(i, self.env, epsilons[i], self.weight_q, self.config) for i in range(self.config.num_actors)]
         self.learner  = Learner.remote(self.weight_q, self.config)
         self.tester   = Actor.remote(self.config.num_actors, self.env, 0, self.weight_q, self.config, mode="test")
         ray.get(self.learner.get_weight.remote())
-
+    def epsilon_function(self, i):
+        return self.config.base_epsilon ** (1 + i/(self.config.num_actors-1+0.00001)*self.config.epsilon_alpha)
     def run(self):
         # Write everything in TensorBoard
         self.writer = summary.create_file_writer(self.config.results_path)

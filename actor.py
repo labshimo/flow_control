@@ -23,7 +23,9 @@ class Actor():
         self.mode           = mode
         self.config         = config
         self.env            = env(config)
+        # epsilon
         self.epsilon        = epsilon
+        self.epsilon_step   = (epsilon - self.config.min_epsilon)/self.config.anealing_steps
         self.global_steps   = 0
         # build Q network
         self.q_network      = self.config.network(config) #network
@@ -34,12 +36,17 @@ class Actor():
         self.weight_dir     = self.config.monitor_mov_dir + "/test/weight" 
         if not os.path.exists(self.weight_dir):
             os.makedirs(self.weight_dir)
-    
+    def epsilon_function(self,episode):
+        if self.config.anealing and self.config.no_anealing_steps > episode:
+            self.epsilon -= self.epsilon_step
+            self.epsilon  = max(self.epsilon, 0)
+            
     def initialize(self,episode):
         self.buffer       = []
         self.experiences  = []
         self.td_errors    = []
         self.R            = 0
+        self.epsilon_function(episode)
         self.forward(np.random.rand(*self.config.input_shape[1:]))
         return self.env.reset(self.mode, episode)
     
